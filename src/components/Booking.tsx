@@ -56,6 +56,11 @@ export function Booking({ onNavigate, court, isAuthenticated, userRole, onLogout
   const finalTotal = total + serviceFee;
 
   const handleConfirmBooking = () => {
+    if (!isAuthenticated) {
+      onNavigate('login');
+      return;
+    }
+
     setShowConfirmation(true);
   };
 
@@ -132,6 +137,31 @@ export function Booking({ onNavigate, court, isAuthenticated, userRole, onLogout
         userRole={userRole}
         onLogout={onLogout}
       />
+
+      {!isAuthenticated && (
+        <div className="max-w-6xl mx-auto px-4 py-4">
+          <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-lg text-yellow-700 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <strong>Debes iniciar sesión o registrarte</strong>
+              <div className="text-sm text-yellow-800">Inicia sesión para poder confirmar tu reserva.</div>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => onNavigate('login')}
+                className="px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors"
+              >
+                Iniciar Sesión
+              </button>
+              <button
+                onClick={() => onNavigate('register')}
+                className="px-4 py-2 bg-white text-emerald-600 rounded-lg border border-emerald-200 hover:bg-gray-50 transition-colors"
+              >
+                Registrarse
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="max-w-6xl mx-auto px-4 py-8">
         <button
@@ -353,9 +383,9 @@ export function Booking({ onNavigate, court, isAuthenticated, userRole, onLogout
 
               <button
                 onClick={handleConfirmBooking}
-                className="w-full py-4 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors mb-4"
+                className={`w-full py-4 rounded-lg mb-4 transition-colors ${isAuthenticated ? 'bg-emerald-500 text-white hover:bg-emerald-600' : 'bg-emerald-100 text-emerald-700 cursor-pointer hover:bg-emerald-200'}`}
               >
-                Confirmar y Pagar
+                {isAuthenticated ? 'Confirmar y Pagar' : 'Iniciar sesión para reservar'}
               </button>
 
               <p className="text-center text-gray-500 text-sm">
