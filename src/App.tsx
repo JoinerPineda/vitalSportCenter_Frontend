@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { Landing } from './components/Landing';
 import { ExploreSports } from './components/ExploreSports';
 import { CourtDetail } from './components/CourtDetail';
@@ -23,45 +23,32 @@ type Page =
   | 'admin';
 
  function App() {
+  const { user, isAuthenticated } = useAuth();
   const [currentPage, setCurrentPage] = useState<Page>('landing');
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [userRole, setUserRole] = useState<'client' | 'admin' | null>(null);
   const [selectedCourt, setSelectedCourt] = useState<any>(null);
   const [selectedSport, setSelectedSport] = useState<string | null>(null);
 
-  const navigate = (page: Page) => {
+  const navigate = useCallback((page: Page) => {
     setCurrentPage(page);
-  };
+  }, []);
 
-  const handleLogin = (role: 'client' | 'admin') => {
-    setIsAuthenticated(true);
-    setUserRole(role);
-    if (role === 'admin') {
-      navigate('admin');
-    } else {
-      navigate('landing');
-    }
-  };
-
-  const handleLogout = () => {
-    setIsAuthenticated(false);
-    setUserRole(null);
+  const handleLogout = useCallback(() => {
     navigate('landing');
-  };
+  }, [navigate]);
 
-  const handleSelectCourt = (court: any) => {
+  const handleSelectCourt = useCallback((court: any) => {
     setSelectedCourt(court);
     navigate('court-detail');
-  };
+  }, [navigate]);
 
-  const handleBookCourt = () => {
+  const handleBookCourt = useCallback(() => {
     navigate('booking');
-  };
+  }, []);
 
-  const handleSelectSport = (sport: string) => {
+  const handleSelectSport = useCallback((sport: string) => {
     setSelectedSport(sport);
     navigate('explore');
-  };
+  }, [navigate]);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -69,7 +56,7 @@ type Page =
         <Landing 
           onNavigate={navigate}
           isAuthenticated={isAuthenticated}
-          userRole={userRole}
+          userRole={user?.role || null}
           onLogout={handleLogout}
           onSelectSport={handleSelectSport}
         />
@@ -79,7 +66,7 @@ type Page =
           onNavigate={navigate}
           onSelectCourt={handleSelectCourt}
           isAuthenticated={isAuthenticated}
-          userRole={userRole}
+          userRole={user?.role || null}
           onLogout={handleLogout}
           selectedSport={selectedSport}
         />
@@ -90,7 +77,7 @@ type Page =
           court={selectedCourt}
           onBook={handleBookCourt}
           isAuthenticated={isAuthenticated}
-          userRole={userRole}
+          userRole={user?.role || null}
           onLogout={handleLogout}
         />
       )}
@@ -99,7 +86,7 @@ type Page =
           onNavigate={navigate}
           court={selectedCourt}
           isAuthenticated={isAuthenticated}
-          userRole={userRole}
+          userRole={user?.role || null}
           onLogout={handleLogout}
         />
       )}
@@ -107,14 +94,13 @@ type Page =
         <UserProfile 
           onNavigate={navigate}
           isAuthenticated={isAuthenticated}
-          userRole={userRole}
+          userRole={user?.role || null}
           onLogout={handleLogout}
         />
       )}
       {currentPage === 'login' && (
         <Login 
           onNavigate={navigate}
-          onLogin={handleLogin}
         />
       )}
       {currentPage === 'register' && (

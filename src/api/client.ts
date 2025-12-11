@@ -24,17 +24,10 @@ export const apiClient = {
       headers,
     })
 
-    // Handle 401 Unauthorized
-    if (response.status === 401) {
-      localStorage.removeItem('auth_token')
-      localStorage.removeItem('user_data')
-      window.location.href = '/login'
-    }
-
     const data = await response.json()
 
     if (!response.ok) {
-      throw new Error(data.message || 'API Error')
+      throw new Error(data.message || `API Error: ${response.status}`)
     }
 
     return data

@@ -5,29 +5,61 @@ import { toast } from 'sonner';
 
 interface LoginProps {
   onNavigate: (page: string) => void;
-  onLogin?: (role: 'client' | 'admin') => void;
 }
 
-export function Login({ onNavigate, onLogin }: LoginProps) {
+export function Login({ onNavigate }: LoginProps) {
   const { login, isLoading, user } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    e.stopPropagation(); // Detener propagación de eventos
+    setError('');
+    
     try {
       const loggedUser = await login(email, password);
-      toast.success('¡Sesión iniciada correctamente!');
-      const role = loggedUser?.role || (user as any)?.role;
-      if (role === 'admin') {
-        onNavigate('admin');
-        onLogin?.('admin');
-      } else {
-        onNavigate('profile');
-        onLogin?.('client');
+      
+      // Solo navega si login fue exitoso (loggedUser no es null)
+      if (!loggedUser) {
+        setError('Error al iniciar sesión: usuario no encontrado');
+        toast.error('Error al iniciar sesión');
+        return;
       }
-    } catch (error: any) {
-      toast.error(error.message || 'Error al iniciar sesión');
+
+      // Login exitoso
+      toast.success('¡Sesión iniciada correctamente!');
+      
+      // Pequeño delay para asegurar que el toast se muestre antes de navegar
+      setTimeout(() => {
+        if (loggedUser.role === 'admin') {
+          onNavigate('admin');
+        } else {
+          onNavigate('profile');
+        }
+      }, 300);
+      
+    } catch (err: any) {
+      console.error('Login error:', err); // Debug
+      const errorMsg = err?.message || 'Error al iniciar sesión';
+      
+      // Detectar si es credenciales inválidas
+      const isInvalidCredentials = 
+        errorMsg.toLowerCase().includes('unauthorized') || 
+        errorMsg.toLowerCase().includes('invalid') ||
+        errorMsg.toLowerCase().includes('credenciales') ||
+        errorMsg.toLowerCase().includes('contraseña') ||
+        errorMsg.toLowerCase().includes('not found') ||
+        err?.status === 401;
+      
+      const displayMsg = isInvalidCredentials 
+        ? 'Credenciales inválidas' 
+        : errorMsg;
+      
+      setError(displayMsg);
+      toast.error(displayMsg);
+      // NO navega aquí - se queda en login
     }
   };
 
@@ -46,6 +78,11 @@ export function Login({ onNavigate, onLogin }: LoginProps) {
 
         <div className="bg-white rounded-2xl shadow-xl p-8">
           <form onSubmit={handleSubmit} className="space-y-6">
+            {error && (
+              <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
+                {error}
+              </div>
+            )}
             <div>
               <label className="block text-gray-700 mb-2">Correo electrónico</label>
               <div className="relative">
@@ -112,18 +149,6 @@ export function Login({ onNavigate, onLogin }: LoginProps) {
               </p>
             </div>
           </form>
-
-          <div className="mt-8 pt-6 border-t border-gray-200">
-            <p className="text-gray-600 text-sm text-center mb-4">Demo de usuarios:</p>
-            <div className="space-y-2 text-sm">
-              <p className="text-gray-600">
-                • <span className="text-gray-900">cliente@email.com</span> - Usuario Cliente
-              </p>
-              <p className="text-gray-600">
-                • <span className="text-gray-900">admin@email.com</span> - Administrador
-              </p>
-            </div>
-          </div>
         </div>
 
         <div className="text-center mt-6">
