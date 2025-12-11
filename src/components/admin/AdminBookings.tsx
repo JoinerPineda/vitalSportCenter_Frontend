@@ -177,7 +177,7 @@ export function AdminBookings() {
             </thead>
             <tbody className="divide-y divide-gray-200">
               {filteredBookings.map((booking) => (
-                <tr key={booking.id} className="hover:bg-gray-50">
+                <tr key={(booking as any)._id || booking.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4">
                     <p className="text-gray-900">{booking.bookingNumber}</p>
                   </td>

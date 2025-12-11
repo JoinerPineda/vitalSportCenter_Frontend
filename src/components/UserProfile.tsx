@@ -164,7 +164,7 @@ export function UserProfile({ onNavigate, isAuthenticated, userRole, onLogout }:
 
                 <div className="space-y-4">
                   {bookings.map(booking => (
-                    <div key={booking.id} className="bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-shadow">
+                    <div key={booking._id || booking.id} className="bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-shadow">
                       <div className="flex flex-col md:flex-row">
                         <div className="md:w-48 h-48 md:h-auto flex-shrink-0">
                           <ImageWithFallback
@@ -240,7 +240,7 @@ export function UserProfile({ onNavigate, isAuthenticated, userRole, onLogout }:
                       </thead>
                       <tbody className="divide-y divide-gray-200">
                         {paymentHistory.map(payment => (
-                          <tr key={payment.id} className="hover:bg-gray-50">
+                          <tr key={(payment as any)._id || payment.id} className="hover:bg-gray-50">
                             <td className="px-6 py-4 text-gray-900">
                               {new Date(payment.date).toLocaleDateString('es-CO')}
                             </td>

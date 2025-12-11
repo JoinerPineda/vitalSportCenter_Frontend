@@ -110,7 +110,7 @@ export function AdminCourts() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredCourts.map((court) => (
-          <div key={court.id} className="bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-shadow">
+          <div key={(court as any)._id || court.id} className="bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-shadow">
             <div className="relative h-48">
               <ImageWithFallback
                 src={court.image}

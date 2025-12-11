@@ -1,20 +1,34 @@
 import { LogIn, Mail, Lock } from 'lucide-react';
 import { useState } from 'react';
+import { useAuth } from '../context/AuthContext';
+import { toast } from 'sonner';
 
 interface LoginProps {
   onNavigate: (page: string) => void;
-  onLogin: (role: 'client' | 'admin') => void;
+  onLogin?: (role: 'client' | 'admin') => void;
 }
 
 export function Login({ onNavigate, onLogin }: LoginProps) {
+  const { login, isLoading, user } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Demo: check if email contains 'admin' to determine role
-    const role = email.toLowerCase().includes('admin') ? 'admin' : 'client';
-    onLogin(role);
+    try {
+      const loggedUser = await login(email, password);
+      toast.success('¡Sesión iniciada correctamente!');
+      const role = loggedUser?.role || (user as any)?.role;
+      if (role === 'admin') {
+        onNavigate('admin');
+        onLogin?.('admin');
+      } else {
+        onNavigate('profile');
+        onLogin?.('client');
+      }
+    } catch (error: any) {
+      toast.error(error.message || 'Error al iniciar sesión');
+    }
   };
 
   return (
@@ -78,10 +92,11 @@ export function Login({ onNavigate, onLogin }: LoginProps) {
 
             <button
               type="submit"
-              className="w-full py-3 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors flex items-center justify-center gap-2"
+              disabled={isLoading}
+              className="w-full py-3 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <LogIn className="w-5 h-5" />
-              Iniciar Sesión
+              {isLoading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
             </button>
 
             <div className="text-center">

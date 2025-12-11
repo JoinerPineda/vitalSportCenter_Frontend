@@ -8,6 +8,8 @@ import { Login } from './components/Login';
 import { Register } from './components/Register';
 import { ForgotPassword } from './components/ForgotPassword';
 import { AdminDashboard } from './components/AdminDashboard';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import { Toaster } from 'sonner';
 
 type Page = 
   | 'landing'
@@ -20,7 +22,7 @@ type Page =
   | 'forgot-password'
   | 'admin';
 
-export default function App() {
+ function App() {
   const [currentPage, setCurrentPage] = useState<Page>('landing');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userRole, setUserRole] = useState<'client' | 'admin' | null>(null);
@@ -134,3 +136,14 @@ export default function App() {
     </div>
   );
 }
+
+function AppWrapper() {
+  return (
+    <AuthProvider>
+      <App />
+      <Toaster />
+    </AuthProvider>
+  );
+}
+
+export default AppWrapper;

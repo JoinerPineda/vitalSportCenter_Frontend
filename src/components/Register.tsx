@@ -1,11 +1,14 @@
 import { UserPlus, Mail, Lock, User, Phone } from 'lucide-react';
 import { useState } from 'react';
+import { useAuth } from '../context/AuthContext';
+import { toast } from 'sonner';
 
 interface RegisterProps {
   onNavigate: (page: string) => void;
 }
 
 export function Register({ onNavigate }: RegisterProps) {
+  const { register: registerUser, isLoading, error } = useAuth();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -13,11 +16,39 @@ export function Register({ onNavigate }: RegisterProps) {
     password: '',
     confirmPassword: ''
   });
+  const [validationError, setValidationError] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Here would be registration logic
-    onNavigate('login');
+    setValidationError('');
+
+    // Validation
+    if (!formData.name.trim()) {
+      setValidationError('El nombre es requerido');
+      return;
+    }
+    if (!formData.email.trim()) {
+      setValidationError('El correo es requerido');
+      return;
+    }
+    if (formData.password.length < 8) {
+      setValidationError('La contraseña debe tener mínimo 8 caracteres');
+      return;
+    }
+    if (formData.password !== formData.confirmPassword) {
+      setValidationError('Las contraseñas no coinciden');
+      return;
+    }
+
+    try {
+      await registerUser(formData.name, formData.email, formData.password);
+      toast.success('Cuenta creada exitosamente. Por favor inicia sesión.');
+      onNavigate('login');
+    } catch (err) {
+      const errorMessage = error || 'Error al crear la cuenta. Intenta de nuevo.';
+      setValidationError(errorMessage);
+      toast.error(errorMessage);
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -84,7 +115,6 @@ export function Register({ onNavigate }: RegisterProps) {
                   value={formData.phone}
                   onChange={handleChange}
                   placeholder="+57 312 456 7890"
-                  required
                   className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                 />
               </div>
@@ -131,12 +161,19 @@ export function Register({ onNavigate }: RegisterProps) {
               </label>
             </div>
 
+            {validationError && (
+              <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
+                {validationError}
+              </div>
+            )}
+
             <button
               type="submit"
-              className="w-full py-3 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors flex items-center justify-center gap-2"
+              disabled={isLoading}
+              className="w-full py-3 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <UserPlus className="w-5 h-5" />
-              Crear Cuenta
+              {isLoading ? 'Creando cuenta...' : 'Crear Cuenta'}
             </button>
 
             <div className="text-center">

@@ -2,21 +2,29 @@ import { Calendar, Clock, CreditCard, MapPin, ArrowLeft, Check } from 'lucide-re
 import { useState } from 'react';
 import { Navbar } from './Navbar';
 import { ImageWithFallback } from './figma/ImageWithFallback';
+import { useAuth } from '../context/AuthContext';
+import { bookingsApi } from '../api/bookings';
+import { toast } from 'sonner';
+import { Court } from '../types/api';
 
 interface BookingProps {
   onNavigate: (page: string) => void;
-  court: any;
+  court: Court | null;
   isAuthenticated?: boolean;
   userRole?: 'client' | 'admin' | null;
   onLogout?: () => void;
 }
 
 export function Booking({ onNavigate, court, isAuthenticated, userRole, onLogout }: BookingProps) {
+  const { isAuthenticated: authCheckAuthenticated } = useAuth();
   const [selectedDate, setSelectedDate] = useState('2025-12-11');
   const [selectedTime, setSelectedTime] = useState('14:00 - 15:00');
   const [duration, setDuration] = useState(1);
   const [paymentMethod, setPaymentMethod] = useState('card');
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [bookingId, setBookingId] = useState('');
+  const [error, setError] = useState('');
 
   if (!court) {
     return (
@@ -55,13 +63,44 @@ export function Booking({ onNavigate, court, isAuthenticated, userRole, onLogout
   const serviceFee = Math.round(total * 0.05);
   const finalTotal = total + serviceFee;
 
-  const handleConfirmBooking = () => {
-    if (!isAuthenticated) {
+  const handleConfirmBooking = async () => {
+    if (!authCheckAuthenticated) {
       onNavigate('login');
       return;
     }
 
-    setShowConfirmation(true);
+    if (!court) {
+      setError('Error: No hay cancha seleccionada');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError('');
+
+      const [startHour] = selectedTime.split(' - ')[0].split(':').map(Number);
+      
+      const response = await bookingsApi.create({
+        court: court._id || court.id,
+        date: selectedDate,
+        startTime: selectedTime.split(' - ')[0],
+        duration,
+        paymentMethod,
+        price: court.price * duration
+      });
+
+      if (response && (response.booking?._id || response.booking?.id)) {
+        setBookingId(response.booking._id || response.booking.id || '');
+        setShowConfirmation(true);
+        toast.success('¡Reserva confirmada exitosamente!');
+      }
+    } catch (err: any) {
+      const errorMessage = err.message || 'Error al confirmar la reserva. Intenta de nuevo.';
+      setError(errorMessage);
+      toast.error(errorMessage);
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (showConfirmation) {
@@ -87,8 +126,12 @@ export function Booking({ onNavigate, court, isAuthenticated, userRole, onLogout
               <h2 className="text-gray-900 mb-4">Detalles de la Reserva</h2>
               <div className="space-y-3">
                 <div className="flex justify-between">
+                  <span className="text-gray-600">ID de Reserva:</span>
+                  <span className="text-gray-900 font-mono">{bookingId}</span>
+                </div>
+                <div className="flex justify-between">
                   <span className="text-gray-600">Cancha:</span>
-                  <span className="text-gray-900">{court.name}</span>
+                  <span className="text-gray-900">{court?.name}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Fecha:</span>
@@ -104,10 +147,11 @@ export function Booking({ onNavigate, court, isAuthenticated, userRole, onLogout
                 </div>
                 <div className="flex justify-between pt-3 border-t border-gray-200">
                   <span className="text-gray-900">Total Pagado:</span>
-                  <span className="text-emerald-600 text-xl">${finalTotal.toLocaleString('es-CO')} COP</span>
+                  <span className="text-emerald-600 text-xl">${(court?.price || 0) * duration + Math.round((court?.price || 0) * duration * 0.05)}</span>
                 </div>
               </div>
             </div>
+            
 
             <div className="flex gap-4">
               <button
@@ -381,11 +425,18 @@ export function Booking({ onNavigate, court, isAuthenticated, userRole, onLogout
                 <span className="text-emerald-600 text-2xl">${finalTotal.toLocaleString('es-CO')} COP</span>
               </div>
 
+              {error && (
+                <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
+                  {error}
+                </div>
+              )}
+
               <button
                 onClick={handleConfirmBooking}
-                className={`w-full py-4 rounded-lg mb-4 transition-colors ${isAuthenticated ? 'bg-emerald-500 text-white hover:bg-emerald-600' : 'bg-emerald-100 text-emerald-700 cursor-pointer hover:bg-emerald-200'}`}
+                disabled={loading || !authCheckAuthenticated}
+                className={`w-full py-4 rounded-lg mb-4 transition-colors font-medium ${authCheckAuthenticated ? 'bg-emerald-500 text-white hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed' : 'bg-emerald-100 text-emerald-700 cursor-pointer hover:bg-emerald-200'}`}
               >
-                {isAuthenticated ? 'Confirmar y Pagar' : 'Iniciar sesión para reservar'}
+                {loading ? 'Procesando...' : authCheckAuthenticated ? 'Confirmar y Pagar' : 'Iniciar sesión para reservar'}
               </button>
 
               <p className="text-center text-gray-500 text-sm">
