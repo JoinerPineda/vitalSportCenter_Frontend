@@ -1,7 +1,9 @@
 import { User, Calendar, CreditCard, Settings, MapPin, Clock, Mail, Phone, Edit2 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Navbar } from './Navbar';
 import { ImageWithFallback } from './figma/ImageWithFallback';
+import { useAuth } from '../context/AuthContext';
+import { bookingsApi } from '../api/bookings';
 
 interface UserProfileProps {
   onNavigate: (page: string) => void;
@@ -12,49 +14,25 @@ interface UserProfileProps {
 
 export function UserProfile({ onNavigate, isAuthenticated, userRole, onLogout }: UserProfileProps) {
   const [activeTab, setActiveTab] = useState('reservations');
+  const { user } = useAuth();
+  const [bookings, setBookings] = useState<any[]>([]);
+  const [loadingBookings, setLoadingBookings] = useState(false);
 
-  const mockUser = {
-    name: 'Juan Carlos Rodríguez',
-    email: 'juan.rodriguez@email.com',
-    phone: '+57 312 456 7890',
-    avatar: 'https://ui-avatars.com/api/?name=Juan+Rodriguez&background=10b981&color=fff&size=200'
-  };
-
-  const bookings = [
-    {
-      id: 1,
-      court: 'Cancha Fútbol Premium',
-      sport: 'Fútbol',
-      location: 'Centro, Manizales',
-      date: '2025-12-15',
-      time: '14:00 - 16:00',
-      status: 'confirmed',
-      price: 160000,
-      image: 'https://images.unsplash.com/photo-1641029185333-7ed62a19d5f0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzb2NjZXIlMjBmaWVsZCUyMGFlcmlhbHxlbnwxfHx8fDE3NjUzOTk5MzJ8MA&ixlib=rb-4.1.0&q=80&w=1080'
-    },
-    {
-      id: 2,
-      court: 'Cancha Tenis Club Campestre',
-      sport: 'Tenis',
-      location: 'El Cable, Manizales',
-      date: '2025-12-18',
-      time: '10:00 - 11:00',
-      status: 'confirmed',
-      price: 60000,
-      image: 'https://images.unsplash.com/photo-1564769353575-73f33a36d84f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx0ZW5uaXMlMjBjb3VydCUyMHNwb3J0fGVufDF8fHx8MTc2NTM2OTYyOHww&ixlib=rb-4.1.0&q=80&w=1080'
-    },
-    {
-      id: 3,
-      court: 'Baloncesto Arena Central',
-      sport: 'Baloncesto',
-      location: 'Palermo, Manizales',
-      date: '2025-12-08',
-      time: '18:00 - 19:00',
-      status: 'completed',
-      price: 70000,
-      image: 'https://images.unsplash.com/photo-1710378844976-93a6538671ef?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxiYXNrZXRiYWxsJTIwY291cnQlMjBpbmRvb3J8ZW58MXx8fHwxNzY1MzkyMTY4fDA&ixlib=rb-4.1.0&q=80&w=1080'
-    }
-  ];
+  useEffect(() => {
+    const load = async () => {
+      if (!user) return;
+      try {
+        setLoadingBookings(true);
+        const resp = await bookingsApi.getMyBookings();
+        setBookings((resp as any).bookings || []);
+      } catch (err) {
+        console.error('Error cargando reservas del usuario', err);
+      } finally {
+        setLoadingBookings(false);
+      }
+    };
+    load();
+  }, [user]);
 
   const paymentHistory = [
     { id: 1, date: '2025-12-10', description: 'Reserva Cancha Fútbol Premium', amount: 160000, status: 'completed' },
@@ -89,23 +67,23 @@ export function UserProfile({ onNavigate, isAuthenticated, userRole, onLogout }:
               <div className="text-center mb-6">
                 <div className="w-32 h-32 rounded-full overflow-hidden mx-auto mb-4">
                   <ImageWithFallback
-                    src={mockUser.avatar}
-                    alt={mockUser.name}
+                    src={user?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || 'Usuario')}&background=10b981&color=fff&size=200`}
+                    alt={user?.name || 'Usuario'}
                     className="w-full h-full object-cover"
                   />
                 </div>
-                <h2 className="text-gray-900 text-xl mb-1">{mockUser.name}</h2>
+                <h2 className="text-gray-900 text-xl mb-1">{user?.name || 'Nombre de usuario'}</h2>
                 <p className="text-gray-600">Cliente</p>
               </div>
 
               <div className="space-y-3 mb-6">
                 <div className="flex items-center gap-3 text-gray-600">
                   <Mail className="w-5 h-5" />
-                  <span className="text-sm">{mockUser.email}</span>
+                  <span className="text-sm">{user?.email || '-'}</span>
                 </div>
                 <div className="flex items-center gap-3 text-gray-600">
                   <Phone className="w-5 h-5" />
-                  <span className="text-sm">{mockUser.phone}</span>
+                  <span className="text-sm">{(user as any)?.phone || '-'}</span>
                 </div>
               </div>
 
