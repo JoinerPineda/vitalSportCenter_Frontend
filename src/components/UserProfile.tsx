@@ -1,4 +1,4 @@
-import { User, Calendar, CreditCard, Settings, MapPin, Clock, Mail, Phone, Edit2 } from 'lucide-react';
+import { User, Calendar, CreditCard, MapPin, Clock, Mail, Phone } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { Navbar } from './Navbar';
 import { ImageWithFallback } from './figma/ImageWithFallback';
@@ -67,7 +67,7 @@ export function UserProfile({ onNavigate, isAuthenticated, userRole, onLogout }:
               <div className="text-center mb-6">
                 <div className="w-32 h-32 rounded-full overflow-hidden mx-auto mb-4">
                   <ImageWithFallback
-                    src={user?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || 'Usuario')}&background=10b981&color=fff&size=200`}
+                    src={user?.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || 'Usuario')}&background=10b981&color=fff&size=200`}
                     alt={user?.name || 'Usuario'}
                     className="w-full h-full object-cover"
                   />
@@ -86,11 +86,6 @@ export function UserProfile({ onNavigate, isAuthenticated, userRole, onLogout }:
                   <span className="text-sm">{(user as any)?.phone || '-'}</span>
                 </div>
               </div>
-
-              <button className="w-full py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center gap-2">
-                <Edit2 className="w-4 h-4" />
-                Editar Perfil
-              </button>
             </div>
 
             <div className="bg-white rounded-xl shadow-sm p-6 mt-6">
@@ -117,17 +112,6 @@ export function UserProfile({ onNavigate, isAuthenticated, userRole, onLogout }:
                   <CreditCard className="w-5 h-5" />
                   Historial de Pagos
                 </button>
-                <button
-                  onClick={() => setActiveTab('settings')}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                    activeTab === 'settings' 
-                      ? 'bg-emerald-50 text-emerald-600' 
-                      : 'text-gray-700 hover:bg-gray-50'
-                  }`}
-                >
-                  <Settings className="w-5 h-5" />
-                  Configuración
-                </button>
               </nav>
             </div>
           </div>
@@ -141,59 +125,70 @@ export function UserProfile({ onNavigate, isAuthenticated, userRole, onLogout }:
                 </div>
 
                 <div className="space-y-4">
-                  {bookings.map(booking => (
-                    <div key={booking._id || booking.id} className="bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-shadow">
-                      <div className="flex flex-col md:flex-row">
-                        <div className="md:w-48 h-48 md:h-auto flex-shrink-0">
-                          <ImageWithFallback
-                            src={booking.image}
-                            alt={booking.court}
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                        <div className="flex-1 p-6">
-                          <div className="flex items-start justify-between mb-4">
-                            <div>
-                              <h3 className="text-gray-900 text-xl mb-2">{booking.court}</h3>
-                              <div className="flex items-center gap-2 text-gray-600 mb-2">
-                                <MapPin className="w-4 h-4" />
-                                <span>{booking.location}</span>
+                  {loadingBookings ? (
+                    <div className="text-center py-8 text-gray-600">Cargando reservas...</div>
+                  ) : bookings.length > 0 ? (
+                    bookings.map(booking => {
+                      const courtName = typeof booking.court === 'string' ? booking.court : booking.court?.name || 'Cancha';
+                      const courtImage = typeof booking.court !== 'string' ? booking.court?.image : '';
+                      const courtLocation = typeof booking.court !== 'string' ? booking.court?.location : '';
+                      return (
+                        <div key={booking._id || booking.id} className="bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-shadow">
+                          <div className="flex flex-col md:flex-row">
+                            <div className="md:w-48 h-48 md:h-auto flex-shrink-0">
+                              <ImageWithFallback
+                                src={courtImage || ''}
+                                alt={courtName}
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                            <div className="flex-1 p-6">
+                              <div className="flex items-start justify-between mb-4">
+                                <div>
+                                  <h3 className="text-gray-900 text-xl mb-2">{courtName}</h3>
+                                  <div className="flex items-center gap-2 text-gray-600 mb-2">
+                                    <MapPin className="w-4 h-4" />
+                                    <span>{courtLocation || '-'}</span>
+                                  </div>
+                                </div>
+                                {getStatusBadge(booking.status)}
+                              </div>
+
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                <div className="flex items-center gap-2 text-gray-600">
+                                  <Calendar className="w-4 h-4" />
+                                  <span>{new Date(booking.date).toLocaleDateString('es-CO', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                                </div>
+                                <div className="flex items-center gap-2 text-gray-600">
+                                  <Clock className="w-4 h-4" />
+                                  <span>{booking.startTime} - {booking.endTime}</span>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center justify-between pt-4 border-t border-gray-200">
+                                <div>
+                                  <p className="text-gray-600 text-sm">Total pagado</p>
+                                  <p className="text-emerald-600 text-xl">${booking.totalPrice?.toLocaleString('es-CO') || '0'} COP</p>
+                                </div>
+                                {booking.status === 'confirmed' && (
+                                  <button className="px-4 py-2 text-red-600 border border-red-600 rounded-lg hover:bg-red-50 transition-colors">
+                                    Cancelar Reserva
+                                  </button>
+                                )}
+                                {booking.status === 'completed' && (
+                                  <button className="px-4 py-2 text-emerald-600 border border-emerald-600 rounded-lg hover:bg-emerald-50 transition-colors">
+                                    Reservar de Nuevo
+                                  </button>
+                                )}
                               </div>
                             </div>
-                            {getStatusBadge(booking.status)}
-                          </div>
-
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                            <div className="flex items-center gap-2 text-gray-600">
-                              <Calendar className="w-4 h-4" />
-                              <span>{new Date(booking.date).toLocaleDateString('es-CO', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
-                            </div>
-                            <div className="flex items-center gap-2 text-gray-600">
-                              <Clock className="w-4 h-4" />
-                              <span>{booking.time}</span>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center justify-between pt-4 border-t border-gray-200">
-                            <div>
-                              <p className="text-gray-600 text-sm">Total pagado</p>
-                              <p className="text-emerald-600 text-xl">${booking.price.toLocaleString('es-CO')} COP</p>
-                            </div>
-                            {booking.status === 'confirmed' && (
-                              <button className="px-4 py-2 text-red-600 border border-red-600 rounded-lg hover:bg-red-50 transition-colors">
-                                Cancelar Reserva
-                              </button>
-                            )}
-                            {booking.status === 'completed' && (
-                              <button className="px-4 py-2 text-emerald-600 border border-emerald-600 rounded-lg hover:bg-emerald-50 transition-colors">
-                                Reservar de Nuevo
-                              </button>
-                            )}
                           </div>
                         </div>
-                      </div>
-                    </div>
-                  ))}
+                      );
+                    })
+                  ) : (
+                    <div className="text-center py-8 text-gray-600">No tienes reservas aún</div>
+                  )}
                 </div>
               </div>
             )}
@@ -235,107 +230,6 @@ export function UserProfile({ onNavigate, isAuthenticated, userRole, onLogout }:
                         ))}
                       </tbody>
                     </table>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {activeTab === 'settings' && (
-              <div>
-                <div className="mb-6">
-                  <h1 className="text-gray-900 text-3xl mb-2">Configuración</h1>
-                  <p className="text-gray-600">Administra tu cuenta y preferencias</p>
-                </div>
-
-                <div className="space-y-6">
-                  <div className="bg-white rounded-xl shadow-sm p-6">
-                    <h2 className="text-gray-900 text-xl mb-4">Información Personal</h2>
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block text-gray-700 mb-2">Nombre completo</label>
-                        <input
-                          type="text"
-                          defaultValue={mockUser.name}
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-gray-700 mb-2">Correo electrónico</label>
-                        <input
-                          type="email"
-                          defaultValue={mockUser.email}
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-gray-700 mb-2">Teléfono</label>
-                        <input
-                          type="tel"
-                          defaultValue={mockUser.phone}
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-                        />
-                      </div>
-                      <button className="px-6 py-3 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors">
-                        Guardar Cambios
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="bg-white rounded-xl shadow-sm p-6">
-                    <h2 className="text-gray-900 text-xl mb-4">Cambiar Contraseña</h2>
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block text-gray-700 mb-2">Contraseña actual</label>
-                        <input
-                          type="password"
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-gray-700 mb-2">Nueva contraseña</label>
-                        <input
-                          type="password"
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-gray-700 mb-2">Confirmar nueva contraseña</label>
-                        <input
-                          type="password"
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-                        />
-                      </div>
-                      <button className="px-6 py-3 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors">
-                        Actualizar Contraseña
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="bg-white rounded-xl shadow-sm p-6">
-                    <h2 className="text-gray-900 text-xl mb-4">Notificaciones</h2>
-                    <div className="space-y-4">
-                      <label className="flex items-center justify-between cursor-pointer">
-                        <div>
-                          <p className="text-gray-900">Confirmaciones de reserva</p>
-                          <p className="text-gray-600 text-sm">Recibe notificaciones cuando se confirme tu reserva</p>
-                        </div>
-                        <input type="checkbox" defaultChecked className="w-5 h-5 text-emerald-600" />
-                      </label>
-                      <label className="flex items-center justify-between cursor-pointer">
-                        <div>
-                          <p className="text-gray-900">Recordatorios</p>
-                          <p className="text-gray-600 text-sm">Recibe recordatorios antes de tus reservas</p>
-                        </div>
-                        <input type="checkbox" defaultChecked className="w-5 h-5 text-emerald-600" />
-                      </label>
-                      <label className="flex items-center justify-between cursor-pointer">
-                        <div>
-                          <p className="text-gray-900">Promociones</p>
-                          <p className="text-gray-600 text-sm">Recibe ofertas y promociones especiales</p>
-                        </div>
-                        <input type="checkbox" className="w-5 h-5 text-emerald-600" />
-                      </label>
-                    </div>
                   </div>
                 </div>
               </div>

@@ -84,6 +84,7 @@ export interface CreateBookingDto {
   court: string
   date: string
   startTime: string
+  endTime: string
   duration: number
   paymentMethod: PaymentMethod
   price?: number

@@ -78,12 +78,17 @@ export function Booking({ onNavigate, court, isAuthenticated, userRole, onLogout
       setLoading(true);
       setError('');
 
-      const [startHour] = selectedTime.split(' - ')[0].split(':').map(Number);
+      const timeParts = selectedTime.split(' - ')[0].split(':').map(Number);
+      const startHour = Number(timeParts[0] ?? 0);
+      const startMin = Number(timeParts[1] ?? 0);
+      const endHour = startHour + duration;
+      const endTime = `${String(endHour).padStart(2, '0')}:${String(startMin).padStart(2, '0')}`;
       
       const response = await bookingsApi.create({
         court: court._id || court.id,
         date: selectedDate,
         startTime: selectedTime.split(' - ')[0],
+        endTime,
         duration,
         paymentMethod,
         price: court.price * duration
