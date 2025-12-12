@@ -3,7 +3,6 @@ import { LayoutDashboard, Users, Calendar as CalendarIcon, BarChart3, Menu, X } 
 import { AdminUsers } from './admin/AdminUsers';
 import { AdminCourts } from './admin/AdminCourts';
 import { AdminBookings } from './admin/AdminBookings';
-import { AdminReports } from './admin/AdminReports';
 
 interface AdminDashboardProps {
   onNavigate: (page: string) => void;
@@ -18,7 +17,6 @@ export function AdminDashboard({ onNavigate, onLogout }: AdminDashboardProps) {
     { id: 'users', label: 'Usuarios', icon: <Users className="w-5 h-5" /> },
     { id: 'courts', label: 'Canchas', icon: <LayoutDashboard className="w-5 h-5" /> },
     { id: 'bookings', label: 'Reservas', icon: <CalendarIcon className="w-5 h-5" /> },
-    { id: 'reports', label: 'Reportes', icon: <BarChart3 className="w-5 h-5" /> },
   ];
 
   return (
@@ -95,7 +93,6 @@ export function AdminDashboard({ onNavigate, onLogout }: AdminDashboardProps) {
           {activeSection === 'users' && <AdminUsers />}
           {activeSection === 'courts' && <AdminCourts />}
           {activeSection === 'bookings' && <AdminBookings />}
-          {activeSection === 'reports' && <AdminReports />}
         </main>
       </div>
 

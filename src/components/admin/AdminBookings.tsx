@@ -1,82 +1,65 @@
-import { Search, Calendar, Clock, MapPin, User, DollarSign, Filter } from 'lucide-react';
-import { useState } from 'react';
+import { Search, Calendar, Clock, MapPin, User, DollarSign } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { bookingsApi } from '../../api/bookings';
+import { Booking } from '../../types/api';
 
 export function AdminBookings() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [loading, setLoading] = useState(false);
 
-  const bookings = [
-    {
-      id: 1,
-      bookingNumber: 'VSC-001',
-      user: 'Juan Carlos Rodríguez',
-      court: 'Cancha Fútbol Premium',
-      sport: 'Fútbol',
-      location: 'Centro, Manizales',
-      date: '2025-12-15',
-      time: '14:00 - 16:00',
-      duration: 2,
-      price: 160000,
-      status: 'confirmed'
-    },
-    {
-      id: 2,
-      bookingNumber: 'VSC-002',
-      user: 'María López García',
-      court: 'Cancha Tenis Club Campestre',
-      sport: 'Tenis',
-      location: 'El Cable, Manizales',
-      date: '2025-12-18',
-      time: '10:00 - 11:00',
-      duration: 1,
-      price: 60000,
-      status: 'confirmed'
-    },
-    {
-      id: 3,
-      bookingNumber: 'VSC-003',
-      user: 'Carlos Méndez',
-      court: 'Baloncesto Arena Central',
-      sport: 'Baloncesto',
-      location: 'Palermo, Manizales',
-      date: '2025-12-08',
-      time: '18:00 - 19:00',
-      duration: 1,
-      price: 70000,
-      status: 'completed'
-    },
-    {
-      id: 4,
-      bookingNumber: 'VSC-004',
-      user: 'Ana Martínez',
-      court: 'Pádel Sport Complex',
-      sport: 'Pádel',
-      location: 'Milán, Manizales',
-      date: '2025-12-20',
-      time: '16:00 - 18:00',
-      duration: 2,
-      price: 130000,
-      status: 'confirmed'
-    },
-    {
-      id: 5,
-      bookingNumber: 'VSC-005',
-      user: 'Pedro González',
-      court: 'Vóleibol Playa Palogrande',
-      sport: 'Vóleibol',
-      location: 'Palogrande, Manizales',
-      date: '2025-12-05',
-      time: '15:00 - 16:00',
-      duration: 1,
-      price: 50000,
-      status: 'cancelled'
-    },
-  ];
+  const loadBookings = async () => {
+    setLoading(true);
+    try {
+      const res = await bookingsApi.getAll();
+      setBookings(res.bookings || []);
+    } catch (err: any) {
+      console.error('Error cargando reservas:', err);
+      alert(err?.message || 'Error cargando reservas');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const filteredBookings = bookings.filter(booking => {
-    const matchesSearch = booking.bookingNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          booking.user.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          booking.court.toLowerCase().includes(searchTerm.toLowerCase());
+  useEffect(() => {
+    loadBookings();
+  }, []);
+
+  const handleUpdateStatus = async (id?: string, status?: string) => {
+    if (!id || !status) return;
+    try {
+      await bookingsApi.updateStatus(id, status);
+      setBookings((prev) => prev.map((b) => (b._id === id || b.id === id ? { ...b, status: status as any } : b)));
+    } catch (err: any) {
+      console.error('Error updating status', err);
+      alert(err?.message || 'Error actualizando estado');
+    }
+  };
+
+  const handleCancel = async (id?: string) => {
+    if (!id) return;
+    const ok = window.confirm('¿Seguro que deseas cancelar esta reserva?');
+    if (!ok) return;
+    try {
+      await bookingsApi.cancel(id);
+      setBookings((prev) => prev.map((b) => (b._id === id || b.id === id ? { ...b, status: 'cancelled' } : b)));
+    } catch (err: any) {
+      console.error('Error cancelling booking', err);
+      alert(err?.message || 'Error cancelando reserva');
+    }
+  };
+
+  const filtered = bookings.filter((booking) => {
+    const bookingNumber = (booking as any).bookingNumber || (booking._id || booking.id);
+    const courtName = typeof booking.court === 'string' ? booking.court : (booking.court as any)?.name || '';
+    const userName = typeof booking.user === 'string' ? booking.user : (booking.user as any)?.name || '';
+
+    const matchesSearch = [String(bookingNumber), courtName, userName]
+      .join(' ')
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase());
+
     const matchesStatus = statusFilter === 'all' || booking.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
@@ -102,7 +85,7 @@ export function AdminBookings() {
 
   const totalRevenue = bookings
     .filter(b => b.status === 'confirmed' || b.status === 'completed')
-    .reduce((sum, b) => sum + b.price, 0);
+    .reduce((sum, b) => sum + (b.totalPrice || 0), 0);
 
   return (
     <div>
@@ -176,50 +159,62 @@ export function AdminBookings() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {filteredBookings.map((booking) => (
-                <tr key={(booking as any)._id || booking.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4">
-                    <p className="text-gray-900">{booking.bookingNumber}</p>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-2">
-                      <User className="w-4 h-4 text-gray-400" />
-                      <span className="text-gray-900">{booking.user}</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <p className="text-gray-900">{booking.court}</p>
-                    <div className="flex items-center gap-2 text-gray-600 text-sm mt-1">
-                      <MapPin className="w-3 h-3" />
-                      {booking.location}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-2 text-gray-900 mb-1">
-                      <Calendar className="w-4 h-4 text-gray-400" />
-                      {new Date(booking.date).toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric' })}
-                    </div>
-                    <div className="flex items-center gap-2 text-gray-600 text-sm">
-                      <Clock className="w-3 h-3" />
-                      {booking.time}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 text-gray-900">
-                    {booking.duration} {booking.duration === 1 ? 'hora' : 'horas'}
-                  </td>
-                  <td className="px-6 py-4 text-gray-900">
-                    ${booking.price.toLocaleString('es-CO')} COP
-                  </td>
-                  <td className="px-6 py-4">
-                    {getStatusBadge(booking.status)}
-                  </td>
-                  <td className="px-6 py-4">
-                    <button className="text-blue-600 hover:text-blue-700">
-                      Ver detalles
-                    </button>
-                  </td>
+              {loading ? (
+                <tr>
+                  <td colSpan={8} className="px-6 py-8 text-center text-gray-500">Cargando reservas...</td>
                 </tr>
-              ))}
+              ) : (
+                filtered.map((booking) => (
+                  <tr key={(booking as any)._id || booking.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4">
+                      <p className="text-gray-900">{(booking as any).bookingNumber || (booking._id || booking.id)}</p>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-2">
+                        <User className="w-4 h-4 text-gray-400" />
+                        <span className="text-gray-900">{typeof booking.user === 'string' ? booking.user : (booking.user as any)?.name}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <p className="text-gray-900">{typeof booking.court === 'string' ? booking.court : (booking.court as any)?.name}</p>
+                      <div className="flex items-center gap-2 text-gray-600 text-sm mt-1">
+                        <MapPin className="w-3 h-3" />
+                        {(booking.court as any)?.location || ''}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-2 text-gray-900 mb-1">
+                        <Calendar className="w-4 h-4 text-gray-400" />
+                        {new Date(booking.date).toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      </div>
+                      <div className="flex items-center gap-2 text-gray-600 text-sm">
+                        <Clock className="w-3 h-3" />
+                        {booking.startTime} - {booking.endTime}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-gray-900">
+                      {booking.duration} {booking.duration === 1 ? 'hora' : 'horas'}
+                    </td>
+                    <td className="px-6 py-4 text-gray-900">
+                      ${((booking.totalPrice || 0)).toLocaleString('es-CO')} COP
+                    </td>
+                    <td className="px-6 py-4">
+                      {getStatusBadge(booking.status as string)}
+                    </td>
+                    <td className="px-6 py-4 flex items-center gap-4">
+                      {booking.status !== 'confirmed' && booking.status !== 'completed' && (
+                        <button onClick={() => handleUpdateStatus(booking._id || booking.id, 'confirmed')} className="text-emerald-600 hover:text-emerald-700">Confirmar</button>
+                      )}
+                      {booking.status !== 'completed' && (
+                        <button onClick={() => handleUpdateStatus(booking._id || booking.id, 'completed')} className="text-gray-600 hover:text-gray-800">Marcar completada</button>
+                      )}
+                      {booking.status !== 'cancelled' && (
+                        <button onClick={() => handleCancel(booking._id || booking.id)} className="text-red-600 hover:text-red-700">Cancelar</button>
+                      )}
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
