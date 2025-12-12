@@ -23,7 +23,7 @@ type Page =
   | 'admin';
 
  function App() {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, logout } = useAuth();
   const [currentPage, setCurrentPage] = useState<Page>('landing');
   const [selectedCourt, setSelectedCourt] = useState<any>(null);
   const [selectedSport, setSelectedSport] = useState<string | null>(null);
@@ -33,8 +33,9 @@ type Page =
   }, []);
 
   const handleLogout = useCallback(() => {
+    logout();
     navigate('landing');
-  }, [navigate]);
+  }, [navigate, logout]);
 
   const handleSelectCourt = useCallback((court: any) => {
     setSelectedCourt(court);
